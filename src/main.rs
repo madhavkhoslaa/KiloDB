@@ -25,9 +25,8 @@ async fn main() -> io::Result<()> {
                     Ok(n) => {
                         println!("Received {} bytes", n);
                         println!("Received data: {}", String::from_utf8_lossy(&buffer[..n]));
-                        let parsed_args = commandParser::parse_args_array(
-                            String::from_utf8_lossy(&buffer[..n]).to_string(),
-                        );
+                        let parsed_args =
+                            commandParser::new(String::from_utf8_lossy(&buffer[..n]).to_string());
                         println!("{:?}", parsed_args);
                         if let Err(e) = stream.write_all(b"+pong\r\n") {
                             eprintln!("Failed to write to socket: {}", e);
