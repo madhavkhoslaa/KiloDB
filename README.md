@@ -21,7 +21,11 @@ A Key Value Database running on redis protocol
 16. ZRANGE
 
 ## Design
-1. Have a datastructure that can hold pairs of Keys and Datastructure
+1. Have a datastructure that can hold pairs of Keys and Datastructure(https://betterprogramming.pub/implementing-a-hashmap-in-rust-35d055b5ac2b)
+    1. Implement own hashmap like datastructure that can store(String/String, String/List, String/Set, String/HashMap)
+    2. Arc refrence of this datastructure will be kept in threads
+    3. Refcell will be used over the values for mutability
+    4. Use of mutexes ?
 2. Only one instance of this datastructure exists in the lifetime of the program
 3. Impls of command traits can execute an alteration on this datastructure
 4. Command trait objects can be spawned to multiple threads and alter the data in our datastruct
@@ -46,3 +50,4 @@ A Key Value Database running on redis protocol
 ## Stage 4
 1. Benchmark against redis
 2. think about it later
+
