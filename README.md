@@ -19,3 +19,30 @@ A Key Value Database running on redis protocol
 14. ZADD
 15. ZREM
 16. ZRANGE
+
+## Design
+1. Have a datastructure that can hold pairs of Keys and Datastructure
+2. Only one instance of this datastructure exists in the lifetime of the program
+3. Impls of command traits can execute an alteration on this datastructure
+4. Command trait objects can be spawned to multiple threads and alter the data in our datastruct
+ 
+## RoadMap
+### Stage 1
+1. Be able to connect to redis-cli
+2. Have simple hashmap like datastructure (be able to do get/set/del on keys from redis cli)
+
+## Stage 2
+1. Be able to connect any language through any redis connector
+2. Have support for datastructure
+    1. Sorted Lists(logn insertion and logn fetch)
+    2. Unsorted Lists(lpush and rpush will be constant time and linear search for fetches)
+3. Add tests
+
+## Stage 3
+1. AOF backups and AOF writes
+2. Have support for datastructure
+    1. Sorted Lists(logn insertion and logn fetch)
+    2. Unsorted Lists(lpush and rpush will be constant time and linear search for fetches)
+## Stage 4
+1. Benchmark against redis
+2. think about it later
