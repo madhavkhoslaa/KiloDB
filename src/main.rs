@@ -105,17 +105,15 @@ fn handle_client(mut stream: TcpStream, context: &mut context) -> std::io::Resul
         println!("{:?}", command);
         let mut response = b"+OK\r\n".to_vec();
         let command_object = Command::command_enum::Command::new(command.as_slice());
-        
+
         match &command_object {
             Command::command_enum::Command::Unknown { .. } => {
                 response = b"-ERR empty command\r\n".to_vec()
             }
             _ => {
-                response = command_executor::command_executor::execute_command(
-                    &command_object,
-                    context,
-                )
-                .unwrap_or(b"-ERR empty command\r\n".to_vec());
+                response =
+                    command_executor::command_executor::execute_command(&command_object, context)
+                        .unwrap_or(b"-ERR empty command\r\n".to_vec());
             }
         }
         println!("{:#?}", command_object);
@@ -129,7 +127,7 @@ fn main() -> std::io::Result<()> {
     // Create the singleton context that will live for the entire program lifetime
     let mut shared_context = context::new();
     println!("Created singleton context for the entire program lifetime");
-    
+
     let listener = TcpListener::bind("127.0.0.1:6379")?;
     println!("TCP server (single-threaded) listening on Redis port 6379");
 
