@@ -85,7 +85,7 @@ fn main() -> Result<(), SystemTimeError> {
 
     // Cleanup invalid Weak refs
     dict_store.cleanup();
-
+    drop(rc_store);
     println!("\n[After drop + cleanup]");
     println!("Dict: {:?}", dict_store);
     println!("TTL: {:?}", ttl_store);
