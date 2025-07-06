@@ -6,4 +6,4 @@ struct VectorStore<T> {
     value: Vec<T>,
 }
 
-impl<T: Debug> Store for VectorStore<T> {}
+impl<T: Debug + 'static> Store for VectorStore<T> {}

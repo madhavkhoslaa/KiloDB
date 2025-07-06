@@ -1,11 +1,10 @@
 use crate::store_containers::{DictStore::DictStore, TTLStore::TTLStore};
 
 pub struct context {
-    DataBase: DictStore,
-    TTLStore: TTLStore,
-    EvictionStore: String, // TODO
+    pub DataBase: DictStore,
+    pub TTLStore: TTLStore,
+    pub EvictionStore: String, // TODO
 }
-
 impl context {
     pub fn new() -> Self {
         context {

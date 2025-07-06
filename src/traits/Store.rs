@@ -1,2 +1,4 @@
 use std::fmt::Debug;
-pub trait Store: Debug {}
+use std::any::Any;
+
+pub trait Store: Debug + Any {}
