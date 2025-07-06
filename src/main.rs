@@ -48,7 +48,9 @@ impl TTLStore {
         }
     }
 }
-fn main() -> Result<(), SystemTimeError> {
+
+// create a LRU/LFU store like this
+fn main() -> Result<(), Box<dyn Error>> {
     let mut data = DictStore::new();
     let mut ttl_store = TTLStore::new();
     let shared_store: Rc<RefCell<dyn Store>> =
@@ -61,5 +63,12 @@ fn main() -> Result<(), SystemTimeError> {
     );
     println!("{:?}", ttl_store);
     println!("{:?}", data);
+    ttl_store.store.clear();
+    drop(shared_store);
+    println!("{:?}", ttl_store);
+    println!(
+        "{:?}",
+        data.store.get("Diya").unwrap().as_ref().unwrap().upgrade()
+    );
     Ok(())
 }
