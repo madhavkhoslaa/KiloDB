@@ -1,55 +1,15 @@
 use std::cell::RefCell;
 use std::error::Error;
-use std::fmt::Debug;
-use std::rc::Weak;
+use std::rc::Rc;
+mod store;
+mod store_containers;
+mod traits;
 use std::time::{SystemTime, SystemTimeError, UNIX_EPOCH};
-use std::{collections::HashMap, rc::Rc};
-trait Store: Debug {}
+use store::string_store::StringStore;
+use store_containers::DictStore::DictStore;
+use store_containers::TTLStore::TTLStore;
+use traits::Store::Store; // create a LRU/LFU store like this
 
-#[derive(Debug)]
-struct StringStore {
-    value: String,
-}
-impl StringStore {
-    fn new(value: String) -> Self {
-        StringStore { value: value }
-    }
-}
-
-#[derive(Debug)]
-struct VectorStore<T> {
-    value: Vec<T>,
-}
-
-impl<T: Debug> Store for VectorStore<T> {}
-impl Store for StringStore {}
-
-#[derive(Debug)]
-struct DictStore {
-    store: HashMap<String, Option<Weak<RefCell<dyn Store>>>>,
-}
-impl DictStore {
-    fn new() -> Self {
-        DictStore {
-            store: HashMap::new(),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct TTLStore {
-    store: HashMap<usize, Rc<RefCell<dyn Store>>>,
-}
-
-impl TTLStore {
-    fn new() -> Self {
-        TTLStore {
-            store: HashMap::new(),
-        }
-    }
-}
-
-// create a LRU/LFU store like this
 fn main() -> Result<(), Box<dyn Error>> {
     let mut data = DictStore::new();
     let mut ttl_store = TTLStore::new();
