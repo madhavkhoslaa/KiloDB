@@ -1,5 +1,9 @@
 pub mod del;
+pub mod dbsize;
+pub mod echo;
 pub mod exists;
 pub mod expire;
+pub mod flushdb;
 pub mod get;
+pub mod ping;
 pub mod set;

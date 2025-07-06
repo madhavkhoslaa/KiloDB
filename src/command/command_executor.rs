@@ -1,4 +1,4 @@
-use crate::command::executor::{del, exists, expire, get, set};
+use crate::command::executor::{del, dbsize, echo, exists, expire, flushdb, get, ping, set};
 use crate::traits::command::commandExecutor;
 use crate::{command::command_enum::Command, store_containers::core_context::context};
 use std::error::Error;
@@ -22,6 +22,10 @@ impl command_executor {
                 key: _key,
                 seconds: _seconds,
             } => expire::expire::execute(command, context),
+            Command::FLUSHDB => flushdb::flushdb::execute(command, context),
+            Command::DBSIZE => dbsize::dbsize::execute(command, context),
+            Command::ECHO { message: _message } => echo::echo::execute(command, context),
+            Command::PING => ping::ping::execute(command, context),
             _ => Ok(b"$-1\r\n".to_vec()),
         }
     }
