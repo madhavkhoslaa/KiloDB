@@ -53,18 +53,19 @@ impl TTLStore {
 fn main() -> Result<(), Box<dyn Error>> {
     let mut data = DictStore::new();
     let mut ttl_store = TTLStore::new();
-    let shared_store: Rc<RefCell<dyn Store>> =
-        Rc::new(RefCell::new(StringStore::new("Madhav".to_owned())));
-    data.store
-        .insert("Diya".to_owned(), Some(Rc::downgrade(&shared_store)));
-    ttl_store.store.insert(
-        SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as usize,
-        shared_store.clone(),
-    );
+    {
+        let shared_store: Rc<RefCell<dyn Store>> =
+            Rc::new(RefCell::new(StringStore::new("Madhav".to_owned())));
+        data.store
+            .insert("Diya".to_owned(), Some(Rc::downgrade(&shared_store)));
+        ttl_store.store.insert(
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as usize,
+            shared_store.clone(),
+        );
+    }
     println!("{:?}", ttl_store);
     println!("{:?}", data);
     ttl_store.store.clear();
-    drop(shared_store);
     println!("{:?}", ttl_store);
     println!(
         "{:?}",
