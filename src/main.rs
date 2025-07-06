@@ -2,8 +2,8 @@ mod command;
 mod store;
 mod store_containers;
 mod traits;
-use crate::command::command_executor;
 use crate::command::command_enum::Command;
+use crate::command::command_executor;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use store_containers::core_context::context;
@@ -108,9 +108,7 @@ fn handle_client(mut stream: TcpStream, context: &mut context) -> std::io::Resul
         let command_object = Command::new(command.as_slice());
 
         match &command_object {
-            Command::Unknown { .. } => {
-                response = b"-ERR empty command\r\n".to_vec()
-            }
+            Command::Unknown { .. } => response = b"-ERR empty command\r\n".to_vec(),
             _ => {
                 response =
                     command_executor::command_executor::execute_command(&command_object, context)
