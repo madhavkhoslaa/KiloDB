@@ -1,5 +1,6 @@
 # KiloDB
 
+[![Rust](https://github.com/madhavkhoslaa/KiloDB/actions/workflows/rust.yml/badge.svg)](https://github.com/madhavkhoslaa/KiloDB/actions/workflows/rust.yml)
 A Key Value Database running on redis protocol
 
 ## RoadMap
