@@ -5,10 +5,10 @@ A Key Value Database running on redis protocol
 
 ## RoadMap
 
-## Stage 1 [Current]
+## Stage 1 
 1. Implement all of the commands and datasets supported by redis
 
-## Stage 2
+## Stage 2 [Current]
 1. Support TTL
 2. Support Cache Iviction Mechanims
 
