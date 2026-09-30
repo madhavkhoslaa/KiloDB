@@ -16,7 +16,7 @@
 - **Key Management**: KEYS, TYPE, TTL, EXPIRE, PERSIST, RENAME
 
 ### 🚀 Performance Features
-- **Single-threaded architecture** for predictable performance
+- **Multithreaded** - one thread per connection, no more waiting behind other clients
 - **In-memory storage** with fast access patterns
 - **RESP protocol implementation** for Redis client compatibility
 - **Efficient data structures** optimized for Rust
@@ -25,6 +25,23 @@
 - **Redis Protocol (RESP)** - Compatible with existing Redis clients
 - **TCP server** listening on standard Redis port (6379)
 - **Connection handling** with proper client lifecycle management
+
+## 📈 Changelog
+
+### Multithreaded TCP server + ioredis compatibility
+**Changing:** the accept loop ran each client to completion before accepting
+the next, and the RESP parser only looked at a single 512-byte read, so
+pipelined or oversized commands broke. **To:** one thread per connection
+sharing state through a lock, and a buffered parser that drains as many
+complete commands as are already in the buffer. Also added the `HELLO`/
+`CLIENT`/`INFO`/`QUIT` handshake real clients (ioredis, etc.) expect, and
+fixed a bug where keys sharing a TTL could silently wipe each other out.
+
+**Performance gain:** at 20 concurrent connections, the old server served
+1 client and left the other 19 stuck at 1 op each in 3 seconds. After this
+change all 20 are served evenly, 165k ops/sec total (up from 77k ops/sec
+on just the one connection that got through). Full numbers in
+`bench/RESULTS.md`.
 
 ## 🚀 Quick Start
 
@@ -99,7 +116,7 @@ cargo clippy
 
 ### ⚡ Stage 3
 - [ ] Async/await implementation
-- [ ] Multi-threading support
+- [x] Multi-threading support
 - [ ] Improved connection handling
 
 ### 🛡️ Stage 4

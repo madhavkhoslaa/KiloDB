@@ -14,3 +14,6 @@ pub mod hget;
 pub mod lpush;
 pub mod sadd;
 pub mod zadd;
+pub mod hello;
+pub mod client;
+pub mod info;

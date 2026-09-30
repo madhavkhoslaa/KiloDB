@@ -1,12 +1,11 @@
 use crate::traits::Store::Store;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::rc::Weak;
+use std::sync::{Mutex, Weak};
 
 #[derive(Debug)]
 pub struct DictStore {
-    pub store: HashMap<String, Option<Weak<RefCell<dyn Store>>>>,
+    pub store: HashMap<String, Option<Weak<Mutex<dyn Store>>>>,
 }
 impl DictStore {
     pub fn new() -> Self {

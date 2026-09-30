@@ -3,9 +3,9 @@ use crate::store::vector_store::VectorStore;
 use crate::store_containers::core_context::context;
 use crate::traits::command::commandExecutor;
 use crate::traits::Store::Store;
-use std::cell::RefCell;
+use std::sync::Mutex;
 use std::error::Error;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct lpush;
 
@@ -17,7 +17,7 @@ impl commandExecutor for lpush {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let mut store = store_ref.borrow_mut();
+                                let mut store = store_ref.lock().unwrap();
                                 if let Some(vector_store) = (&mut *store as &mut dyn std::any::Any).downcast_mut::<VectorStore>() {
                                     for value in values.iter().rev() { // Reverse to maintain order
                                         vector_store.push_left(value);
@@ -35,13 +35,13 @@ impl commandExecutor for lpush {
                                     new_list.push_left(value);
                                 }
                                 let length = new_list.len();
-                                let shared_store: Rc<RefCell<dyn Store>> =
-                                    Rc::new(RefCell::new(new_list));
+                                let shared_store: Arc<Mutex<dyn Store>> =
+                                    Arc::new(Mutex::new(new_list));
                                 context
                                     .DataBase
                                     .store
-                                    .insert(key.to_owned(), Some(Rc::downgrade(&shared_store)));
-                                context.TTLStore.store.insert(86400, shared_store);
+                                    .insert(key.to_owned(), Some(Arc::downgrade(&shared_store)));
+                                context.TTLStore.store.insert(key.to_owned(), shared_store);
                                 Ok(format!(":{}\r\n", length).into_bytes())
                             }
                         }
@@ -53,13 +53,13 @@ impl commandExecutor for lpush {
                             new_list.push_left(value);
                         }
                         let length = new_list.len();
-                        let shared_store: Rc<RefCell<dyn Store>> =
-                            Rc::new(RefCell::new(new_list));
+                        let shared_store: Arc<Mutex<dyn Store>> =
+                            Arc::new(Mutex::new(new_list));
                         context
                             .DataBase
                             .store
-                            .insert(key.to_owned(), Some(Rc::downgrade(&shared_store)));
-                        context.TTLStore.store.insert(86400, shared_store);
+                            .insert(key.to_owned(), Some(Arc::downgrade(&shared_store)));
+                        context.TTLStore.store.insert(key.to_owned(), shared_store);
                         Ok(format!(":{}\r\n", length).into_bytes())
                     }
                 }
@@ -101,9 +101,9 @@ mod tests {
         // Create existing list
         let mut existing_list = VectorStore::new();
         existing_list.push_left("existing");
-        let shared_store: Rc<RefCell<dyn Store>> = Rc::new(RefCell::new(existing_list));
-        ctx.DataBase.store.insert("mylist".to_string(), Some(Rc::downgrade(&shared_store)));
-        ctx.TTLStore.store.insert(86400, shared_store);
+        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(existing_list));
+        ctx.DataBase.store.insert("mylist".to_string(), Some(Arc::downgrade(&shared_store)));
+        ctx.TTLStore.store.insert("mylist".to_string(), shared_store);
         
         let command = Command::LPUSH {
             key: "mylist".to_string(),

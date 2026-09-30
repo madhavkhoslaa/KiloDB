@@ -3,9 +3,9 @@ use crate::store::sorted_set_store::SortedSetStore;
 use crate::store_containers::core_context::context;
 use crate::traits::command::commandExecutor;
 use crate::traits::Store::Store;
-use std::cell::RefCell;
+use std::sync::Mutex;
 use std::error::Error;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct zadd;
 
@@ -19,7 +19,7 @@ impl commandExecutor for zadd {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let mut store = store_ref.borrow_mut();
+                                let mut store = store_ref.lock().unwrap();
                                 if let Some(zset_store) = (&mut *store as &mut dyn std::any::Any).downcast_mut::<SortedSetStore>() {
                                     for (score, member) in entries {
                                         if zset_store.add_member(member, *score) {
@@ -39,13 +39,13 @@ impl commandExecutor for zadd {
                                         added_count += 1;
                                     }
                                 }
-                                let shared_store: Rc<RefCell<dyn Store>> =
-                                    Rc::new(RefCell::new(new_zset));
+                                let shared_store: Arc<Mutex<dyn Store>> =
+                                    Arc::new(Mutex::new(new_zset));
                                 context
                                     .DataBase
                                     .store
-                                    .insert(key.to_owned(), Some(Rc::downgrade(&shared_store)));
-                                context.TTLStore.store.insert(86400, shared_store);
+                                    .insert(key.to_owned(), Some(Arc::downgrade(&shared_store)));
+                                context.TTLStore.store.insert(key.to_owned(), shared_store);
                                 Ok(format!(":{}\r\n", added_count).into_bytes())
                             }
                         }
@@ -58,13 +58,13 @@ impl commandExecutor for zadd {
                                 added_count += 1;
                             }
                         }
-                        let shared_store: Rc<RefCell<dyn Store>> =
-                            Rc::new(RefCell::new(new_zset));
+                        let shared_store: Arc<Mutex<dyn Store>> =
+                            Arc::new(Mutex::new(new_zset));
                         context
                             .DataBase
                             .store
-                            .insert(key.to_owned(), Some(Rc::downgrade(&shared_store)));
-                        context.TTLStore.store.insert(86400, shared_store);
+                            .insert(key.to_owned(), Some(Arc::downgrade(&shared_store)));
+                        context.TTLStore.store.insert(key.to_owned(), shared_store);
                         Ok(format!(":{}\r\n", added_count).into_bytes())
                     }
                 }
@@ -110,9 +110,9 @@ mod tests {
         // Create existing sorted set
         let mut existing_zset = SortedSetStore::new();
         existing_zset.add_member("existing", 1.0);
-        let shared_store: Rc<RefCell<dyn Store>> = Rc::new(RefCell::new(existing_zset));
-        ctx.DataBase.store.insert("myzset".to_string(), Some(Rc::downgrade(&shared_store)));
-        ctx.TTLStore.store.insert(86400, shared_store);
+        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(existing_zset));
+        ctx.DataBase.store.insert("myzset".to_string(), Some(Arc::downgrade(&shared_store)));
+        ctx.TTLStore.store.insert("myzset".to_string(), shared_store);
         
         let command = Command::ZADD {
             key: "myzset".to_string(),
