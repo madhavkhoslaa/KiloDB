@@ -1,0 +1,14 @@
+{
+  "name": "kilodb-bench",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Benchmark and compatibility-check scripts for KiloDB. Run against a running KiloDB instance (cargo run --release) on port 6379 by default.",
+  "scripts": {
+    "smoke": "node ioredis-smoke.js",
+    "bench:raw": "node raw-bench.js",
+    "bench:read": "node read-bench.js"
+  },
+  "dependencies": {
+    "ioredis": "^5.0.0"
+  }
+}
