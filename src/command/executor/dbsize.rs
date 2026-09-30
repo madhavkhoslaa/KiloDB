@@ -1,12 +1,13 @@
 use crate::command::command_enum::Command;
 use crate::store_containers::core_context::context;
-use crate::traits::command::commandExecutor;
 use std::error::Error;
 
 pub struct dbsize;
 
-impl commandExecutor for dbsize {
-    fn execute(commandObject: &Command, context: &mut context) -> Result<Vec<u8>, Box<dyn Error>> {
+// not commandExecutor, just &context - only reads, so it can run
+// under a read lock
+impl dbsize {
+    pub fn execute(commandObject: &Command, context: &context) -> Result<Vec<u8>, Box<dyn Error>> {
         match commandObject {
             Command::DBSIZE => {
                 // Get the number of keys in the database

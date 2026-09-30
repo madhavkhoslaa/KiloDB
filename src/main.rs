@@ -4,11 +4,27 @@ mod store_containers;
 mod traits;
 use crate::command::command_enum::Command;
 use crate::command::command_executor;
+use crate::command::executor::{dbsize, echo, exists, get, hget, ping};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::thread;
 use store_containers::core_context::context;
+
+// commands that never touch the store get dispatched under a read lock,
+// so e.g. a pile of concurrent GETs can run in parallel instead of
+// queueing behind each other the way they would under the write lock
+fn dispatch_read_only(command_object: &Command, ctx: &context) -> Option<Vec<u8>> {
+    match command_object {
+        Command::GET { .. } => Some(get::get::execute(command_object, ctx).unwrap_or(b"-ERR empty command\r\n".to_vec())),
+        Command::HGET { .. } => Some(hget::hget::execute(command_object, ctx).unwrap_or(b"-ERR empty command\r\n".to_vec())),
+        Command::EXISTS { .. } => Some(exists::exists::execute(command_object, ctx).unwrap_or(b"-ERR empty command\r\n".to_vec())),
+        Command::DBSIZE => Some(dbsize::dbsize::execute(command_object, ctx).unwrap_or(b"-ERR empty command\r\n".to_vec())),
+        Command::PING => Some(ping::ping::execute(command_object, ctx).unwrap_or(b"-ERR empty command\r\n".to_vec())),
+        Command::ECHO { .. } => Some(echo::echo::execute(command_object, ctx).unwrap_or(b"-ERR empty command\r\n".to_vec())),
+        _ => None,
+    }
+}
 
 // parses one RESP array out of buf if there's a full one there, and how
 // many bytes it used, so the caller can drain just that and keep the rest
@@ -66,10 +82,11 @@ fn try_parse_resp(buf: &[u8]) -> Result<Option<(Vec<String>, usize)>, String> {
     Ok(Some((result, pos)))
 }
 
-// runs on its own thread per connection. context is shared via Arc<Mutex<..>>
+// runs on its own thread per connection. context is shared via Arc<RwLock<..>>
 // so a slow/idle client can't block everyone else from getting accepted,
-// unlike the old single-threaded accept loop
-fn handle_client(mut stream: TcpStream, shared_context: Arc<Mutex<context>>) -> std::io::Result<()> {
+// unlike the old single-threaded accept loop, and reads no longer queue
+// behind each other the way they would under a plain Mutex
+fn handle_client(mut stream: TcpStream, shared_context: Arc<RwLock<context>>) -> std::io::Result<()> {
     let peer = stream.peer_addr()?;
     println!("Connected to: {}", peer);
 
@@ -90,15 +107,21 @@ fn handle_client(mut stream: TcpStream, shared_context: Arc<Mutex<context>>) -> 
                         println!("Client {} sent QUIT.", peer);
                         return Ok(());
                     }
-                    let response = match &command_object {
-                        Command::Unknown { .. } => b"-ERR empty command\r\n".to_vec(),
-                        _ => {
-                            let mut ctx = shared_context.lock().unwrap();
-                            command_executor::command_executor::execute_command(
-                                &command_object,
-                                &mut ctx,
-                            )
-                            .unwrap_or(b"-ERR empty command\r\n".to_vec())
+                    let response = if let Command::Unknown { .. } = &command_object {
+                        b"-ERR empty command\r\n".to_vec()
+                    } else {
+                        let read_guard = shared_context.read().unwrap();
+                        match dispatch_read_only(&command_object, &read_guard) {
+                            Some(resp) => resp,
+                            None => {
+                                drop(read_guard);
+                                let mut write_guard = shared_context.write().unwrap();
+                                command_executor::command_executor::execute_command(
+                                    &command_object,
+                                    &mut write_guard,
+                                )
+                                .unwrap_or(b"-ERR empty command\r\n".to_vec())
+                            }
                         }
                     };
                     stream.write_all(&response)?;
@@ -127,7 +150,7 @@ fn handle_client(mut stream: TcpStream, shared_context: Arc<Mutex<context>>) -> 
 fn main() -> std::io::Result<()> {
     // shared across every connection thread now, instead of one &mut
     // on the stack (that's what kept the old version single-threaded)
-    let shared_context = Arc::new(Mutex::new(context::new()));
+    let shared_context = Arc::new(RwLock::new(context::new()));
     println!("Created shared context for the entire program lifetime");
 
     let listener = TcpListener::bind("127.0.0.1:6379")?;

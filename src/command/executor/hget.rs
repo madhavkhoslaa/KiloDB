@@ -1,20 +1,20 @@
 use crate::command::command_enum::Command;
 use crate::store::hash_store::HashStore;
 use crate::store_containers::core_context::context;
-use crate::traits::command::commandExecutor;
 use std::error::Error;
 
 pub struct hget;
 
-impl commandExecutor for hget {
-    fn execute(commandObject: &Command, context: &mut context) -> Result<Vec<u8>, Box<dyn Error>> {
+// same deal as get.rs - plain &context, runs under a read lock
+impl hget {
+    pub fn execute(commandObject: &Command, context: &context) -> Result<Vec<u8>, Box<dyn Error>> {
         match commandObject {
             Command::HGET { key, field } => {
                 match context.DataBase.store.get(key.as_str()) {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let store = store_ref.lock().unwrap();
+                                let store = store_ref.read().unwrap();
                                 if let Some(hash_store) = (&*store as &dyn std::any::Any).downcast_ref::<HashStore>() {
                                     match hash_store.get_field(field) {
                                         Some(value) => Ok(format!("${}\r\n{}\r\n", value.len(), value).into_bytes()),
@@ -40,7 +40,7 @@ mod tests {
     use super::*;
     use crate::store_containers::{DictStore::DictStore, TTLStore::TTLStore};
     use crate::traits::Store::Store;
-    use std::sync::Mutex;
+    use std::sync::RwLock;
     use std::sync::Arc;
 
     fn create_test_context() -> context {
@@ -59,7 +59,7 @@ mod tests {
         let mut hash = HashStore::new();
         hash.set_field("name", "John");
         hash.set_field("age", "30");
-        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(hash));
+        let shared_store: Arc<RwLock<dyn Store>> = Arc::new(RwLock::new(hash));
         ctx.DataBase.store.insert("user:1".to_string(), Some(Arc::downgrade(&shared_store)));
         ctx.TTLStore.store.insert("user:1".to_string(), shared_store);
         
@@ -79,7 +79,7 @@ mod tests {
         // Create hash with data
         let mut hash = HashStore::new();
         hash.set_field("name", "John");
-        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(hash));
+        let shared_store: Arc<RwLock<dyn Store>> = Arc::new(RwLock::new(hash));
         ctx.DataBase.store.insert("user:1".to_string(), Some(Arc::downgrade(&shared_store)));
         ctx.TTLStore.store.insert("user:1".to_string(), shared_store);
         
@@ -112,7 +112,7 @@ mod tests {
         // Create hash with empty value
         let mut hash = HashStore::new();
         hash.set_field("empty", "");
-        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(hash));
+        let shared_store: Arc<RwLock<dyn Store>> = Arc::new(RwLock::new(hash));
         ctx.DataBase.store.insert("user:1".to_string(), Some(Arc::downgrade(&shared_store)));
         ctx.TTLStore.store.insert("user:1".to_string(), shared_store);
         
@@ -132,7 +132,7 @@ mod tests {
         // Create hash with unicode value
         let mut hash = HashStore::new();
         hash.set_field("greeting", "Hello 世界");
-        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(hash));
+        let shared_store: Arc<RwLock<dyn Store>> = Arc::new(RwLock::new(hash));
         ctx.DataBase.store.insert("user:1".to_string(), Some(Arc::downgrade(&shared_store)));
         ctx.TTLStore.store.insert("user:1".to_string(), shared_store);
         

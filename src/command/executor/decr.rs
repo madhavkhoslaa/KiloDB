@@ -3,7 +3,7 @@ use crate::store::string_store::StringStore;
 use crate::store_containers::core_context::context;
 use crate::traits::command::commandExecutor;
 use crate::traits::Store::Store;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::error::Error;
 use std::sync::Arc;
 
@@ -17,7 +17,7 @@ impl commandExecutor for decr {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let mut store = store_ref.lock().unwrap();
+                                let mut store = store_ref.write().unwrap();
                                 if let Some(string_store) = (&mut *store as &mut dyn std::any::Any).downcast_mut::<StringStore>() {
                                     match string_store.get_value().parse::<i64>() {
                                         Ok(current_val) => {
@@ -33,8 +33,8 @@ impl commandExecutor for decr {
                             }
                             None => {
                                 // Key expired or deleted, treat as 0
-                                let shared_store: Arc<Mutex<dyn Store>> =
-                                    Arc::new(Mutex::new(StringStore::new("-1".to_string())));
+                                let shared_store: Arc<RwLock<dyn Store>> =
+                                    Arc::new(RwLock::new(StringStore::new("-1".to_string())));
                                 context
                                     .DataBase
                                     .store
@@ -46,8 +46,8 @@ impl commandExecutor for decr {
                     }
                     Some(None) | None => {
                         // Key doesn't exist, start with -1
-                        let shared_store: Arc<Mutex<dyn Store>> =
-                            Arc::new(Mutex::new(StringStore::new("-1".to_string())));
+                        let shared_store: Arc<RwLock<dyn Store>> =
+                            Arc::new(RwLock::new(StringStore::new("-1".to_string())));
                         context
                             .DataBase
                             .store

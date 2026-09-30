@@ -3,7 +3,7 @@ use crate::store::set_store::SetStore;
 use crate::store_containers::core_context::context;
 use crate::traits::command::commandExecutor;
 use crate::traits::Store::Store;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::error::Error;
 use std::sync::Arc;
 
@@ -19,7 +19,7 @@ impl commandExecutor for sadd {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let mut store = store_ref.lock().unwrap();
+                                let mut store = store_ref.write().unwrap();
                                 if let Some(set_store) = (&mut *store as &mut dyn std::any::Any).downcast_mut::<SetStore>() {
                                     for member in members {
                                         if set_store.add_member(member) {
@@ -39,8 +39,8 @@ impl commandExecutor for sadd {
                                         added_count += 1;
                                     }
                                 }
-                                let shared_store: Arc<Mutex<dyn Store>> =
-                                    Arc::new(Mutex::new(new_set));
+                                let shared_store: Arc<RwLock<dyn Store>> =
+                                    Arc::new(RwLock::new(new_set));
                                 context
                                     .DataBase
                                     .store
@@ -58,8 +58,8 @@ impl commandExecutor for sadd {
                                 added_count += 1;
                             }
                         }
-                        let shared_store: Arc<Mutex<dyn Store>> =
-                            Arc::new(Mutex::new(new_set));
+                        let shared_store: Arc<RwLock<dyn Store>> =
+                            Arc::new(RwLock::new(new_set));
                         context
                             .DataBase
                             .store
@@ -107,7 +107,7 @@ mod tests {
         let mut existing_set = SetStore::new();
         existing_set.add_member("existing1");
         existing_set.add_member("existing2");
-        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(existing_set));
+        let shared_store: Arc<RwLock<dyn Store>> = Arc::new(RwLock::new(existing_set));
         ctx.DataBase.store.insert("myset".to_string(), Some(Arc::downgrade(&shared_store)));
         ctx.TTLStore.store.insert("myset".to_string(), shared_store);
         

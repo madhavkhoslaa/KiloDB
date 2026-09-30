@@ -1,12 +1,13 @@
 use crate::command::command_enum::Command;
 use crate::store_containers::core_context::context;
-use crate::traits::command::commandExecutor;
 use std::error::Error;
 
 pub struct exists;
 
-impl commandExecutor for exists {
-    fn execute(commandObject: &Command, context: &mut context) -> Result<Vec<u8>, Box<dyn Error>> {
+// not commandExecutor, just &context - only reads, so it can run
+// under a read lock
+impl exists {
+    pub fn execute(commandObject: &Command, context: &context) -> Result<Vec<u8>, Box<dyn Error>> {
         match commandObject {
             Command::EXISTS { keys } => {
                 let mut count = 0;

@@ -3,7 +3,7 @@ use crate::store::hash_store::HashStore;
 use crate::store_containers::core_context::context;
 use crate::traits::command::commandExecutor;
 use crate::traits::Store::Store;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::error::Error;
 use std::sync::Arc;
 
@@ -19,7 +19,7 @@ impl commandExecutor for hset {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let mut store = store_ref.lock().unwrap();
+                                let mut store = store_ref.write().unwrap();
                                 if let Some(hash_store) = (&mut *store as &mut dyn std::any::Any).downcast_mut::<HashStore>() {
                                     for (field, value) in fields {
                                         if hash_store.set_field(field, value) {
@@ -39,8 +39,8 @@ impl commandExecutor for hset {
                                         fields_added += 1;
                                     }
                                 }
-                                let shared_store: Arc<Mutex<dyn Store>> =
-                                    Arc::new(Mutex::new(new_hash));
+                                let shared_store: Arc<RwLock<dyn Store>> =
+                                    Arc::new(RwLock::new(new_hash));
                                 context
                                     .DataBase
                                     .store
@@ -58,8 +58,8 @@ impl commandExecutor for hset {
                                 fields_added += 1;
                             }
                         }
-                        let shared_store: Arc<Mutex<dyn Store>> =
-                            Arc::new(Mutex::new(new_hash));
+                        let shared_store: Arc<RwLock<dyn Store>> =
+                            Arc::new(RwLock::new(new_hash));
                         context
                             .DataBase
                             .store
@@ -109,7 +109,7 @@ mod tests {
         // Create existing hash
         let mut existing_hash = HashStore::new();
         existing_hash.set_field("name", "John");
-        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(existing_hash));
+        let shared_store: Arc<RwLock<dyn Store>> = Arc::new(RwLock::new(existing_hash));
         ctx.DataBase.store.insert("user:1".to_string(), Some(Arc::downgrade(&shared_store)));
         ctx.TTLStore.store.insert("user:1".to_string(), shared_store);
         

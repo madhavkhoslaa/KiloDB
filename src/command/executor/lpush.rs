@@ -3,7 +3,7 @@ use crate::store::vector_store::VectorStore;
 use crate::store_containers::core_context::context;
 use crate::traits::command::commandExecutor;
 use crate::traits::Store::Store;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::error::Error;
 use std::sync::Arc;
 
@@ -17,7 +17,7 @@ impl commandExecutor for lpush {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let mut store = store_ref.lock().unwrap();
+                                let mut store = store_ref.write().unwrap();
                                 if let Some(vector_store) = (&mut *store as &mut dyn std::any::Any).downcast_mut::<VectorStore>() {
                                     for value in values.iter().rev() { // Reverse to maintain order
                                         vector_store.push_left(value);
@@ -35,8 +35,8 @@ impl commandExecutor for lpush {
                                     new_list.push_left(value);
                                 }
                                 let length = new_list.len();
-                                let shared_store: Arc<Mutex<dyn Store>> =
-                                    Arc::new(Mutex::new(new_list));
+                                let shared_store: Arc<RwLock<dyn Store>> =
+                                    Arc::new(RwLock::new(new_list));
                                 context
                                     .DataBase
                                     .store
@@ -53,8 +53,8 @@ impl commandExecutor for lpush {
                             new_list.push_left(value);
                         }
                         let length = new_list.len();
-                        let shared_store: Arc<Mutex<dyn Store>> =
-                            Arc::new(Mutex::new(new_list));
+                        let shared_store: Arc<RwLock<dyn Store>> =
+                            Arc::new(RwLock::new(new_list));
                         context
                             .DataBase
                             .store
@@ -101,7 +101,7 @@ mod tests {
         // Create existing list
         let mut existing_list = VectorStore::new();
         existing_list.push_left("existing");
-        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(existing_list));
+        let shared_store: Arc<RwLock<dyn Store>> = Arc::new(RwLock::new(existing_list));
         ctx.DataBase.store.insert("mylist".to_string(), Some(Arc::downgrade(&shared_store)));
         ctx.TTLStore.store.insert("mylist".to_string(), shared_store);
         
