@@ -63,6 +63,16 @@ read guard and everything else under a write guard.
 Gap widens with concurrency, as expected for lock contention. Full
 numbers in `bench/RESULTS.md`.
 
+### Benchmark scripts
+**Changing:** the numbers above were asserted in PR descriptions with
+no way to reproduce them. **To:** `bench/raw-bench.js`, `bench/read-bench.js`,
+and `bench/ioredis-smoke.js` - raw-RESP scripts (no `redis-benchmark`
+available in dev) that reproduce both comparisons and a real `ioredis`
+correctness check, plus `bench/RESULTS.md` with full methodology.
+
+**Performance gain:** none - this one's just making the other two
+numbers reproducible instead of asserted.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
