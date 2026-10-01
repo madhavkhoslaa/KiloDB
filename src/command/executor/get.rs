@@ -14,7 +14,7 @@ impl commandExecutor for get {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let store = store_ref.borrow();
+                                let store = store_ref.lock().unwrap();
                                 if let Some(string_store) =
                                     (&*store as &dyn std::any::Any).downcast_ref::<StringStore>()
                                 {

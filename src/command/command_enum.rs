@@ -176,6 +176,14 @@ pub enum Command {
     },
     FLUSHDB,
     DBSIZE,
+    // handshake stuff ioredis sends on connect - needed or it bails
+    HELLO,
+    CLIENT {
+        args: Vec<String>,
+    },
+    // ioredis's ready-check, sent right after handshake
+    INFO,
+    QUIT,
 
     // Unknown or unhandled
     Unknown {
@@ -777,6 +785,12 @@ impl Command {
             }
             "FLUSHDB" => Command::FLUSHDB,
             "DBSIZE" => Command::DBSIZE,
+            "HELLO" => Command::HELLO,
+            "INFO" => Command::INFO,
+            "QUIT" => Command::QUIT,
+            "CLIENT" => Command::CLIENT {
+                args: command[1..].to_vec(),
+            },
 
             // --- Fallback ---
             _ => Command::Unknown {

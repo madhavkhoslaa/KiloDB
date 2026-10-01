@@ -1,10 +1,13 @@
 use crate::traits::Store::Store;
-use std::cell::RefCell;
 use std::fmt::Debug;
-use std::{collections::HashMap, rc::Rc};
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+// keyed by data key now, not TTL seconds. used to be keyed by the TTL
+// value itself, so any two keys with the same default TTL (86400) stomped
+// on each other's only strong ref and the older one silently went nil
 #[derive(Debug)]
 pub struct TTLStore {
-    pub store: HashMap<usize, Rc<RefCell<dyn Store>>>,
+    pub store: HashMap<String, Arc<Mutex<dyn Store>>>,
 }
 
 impl TTLStore {

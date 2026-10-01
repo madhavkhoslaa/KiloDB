@@ -1,4 +1,4 @@
-use crate::command::executor::{del, dbsize, echo, exists, expire, flushdb, get, ping, set, incr, decr, hset, hget, lpush, sadd, zadd};
+use crate::command::executor::{del, dbsize, echo, exists, expire, flushdb, get, ping, set, incr, decr, hset, hget, lpush, sadd, zadd, hello, client, info};
 use crate::traits::command::commandExecutor;
 use crate::{command::command_enum::Command, store_containers::core_context::context};
 use std::error::Error;
@@ -28,7 +28,10 @@ impl command_executor {
             Command::DBSIZE => dbsize::dbsize::execute(command, context),
             Command::ECHO { message: _message } => echo::echo::execute(command, context),
             Command::PING => ping::ping::execute(command, context),
-            
+            Command::HELLO => hello::hello::execute(command, context),
+            Command::CLIENT { args: _args } => client::client::execute(command, context),
+            Command::INFO => info::info::execute(command, context),
+
             // Hash commands
             Command::HSET { key: _key, fields: _fields } => hset::hset::execute(command, context),
             Command::HGET { key: _key, field: _field } => hget::hget::execute(command, context),

@@ -15,7 +15,7 @@ impl commandExecutor for expire {
                         // Try to upgrade the weak reference
                         if let Some(store_ref) = weak_ref.upgrade() {
                             // Add to TTL store with the specified expiration time
-                            context.TTLStore.store.insert(*seconds as usize, store_ref);
+                            context.TTLStore.store.insert(key.to_owned(), store_ref);
                             Ok(b":1\r\n".to_vec()) // Return 1 to indicate success
                         } else {
                             // Weak reference is invalid, key has expired

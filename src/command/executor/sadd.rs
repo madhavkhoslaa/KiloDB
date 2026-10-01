@@ -3,9 +3,9 @@ use crate::store::set_store::SetStore;
 use crate::store_containers::core_context::context;
 use crate::traits::command::commandExecutor;
 use crate::traits::Store::Store;
-use std::cell::RefCell;
+use std::sync::Mutex;
 use std::error::Error;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct sadd;
 
@@ -19,7 +19,7 @@ impl commandExecutor for sadd {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let mut store = store_ref.borrow_mut();
+                                let mut store = store_ref.lock().unwrap();
                                 if let Some(set_store) = (&mut *store as &mut dyn std::any::Any).downcast_mut::<SetStore>() {
                                     for member in members {
                                         if set_store.add_member(member) {
@@ -39,13 +39,13 @@ impl commandExecutor for sadd {
                                         added_count += 1;
                                     }
                                 }
-                                let shared_store: Rc<RefCell<dyn Store>> =
-                                    Rc::new(RefCell::new(new_set));
+                                let shared_store: Arc<Mutex<dyn Store>> =
+                                    Arc::new(Mutex::new(new_set));
                                 context
                                     .DataBase
                                     .store
-                                    .insert(key.to_owned(), Some(Rc::downgrade(&shared_store)));
-                                context.TTLStore.store.insert(86400, shared_store);
+                                    .insert(key.to_owned(), Some(Arc::downgrade(&shared_store)));
+                                context.TTLStore.store.insert(key.to_owned(), shared_store);
                                 Ok(format!(":{}\r\n", added_count).into_bytes())
                             }
                         }
@@ -58,13 +58,13 @@ impl commandExecutor for sadd {
                                 added_count += 1;
                             }
                         }
-                        let shared_store: Rc<RefCell<dyn Store>> =
-                            Rc::new(RefCell::new(new_set));
+                        let shared_store: Arc<Mutex<dyn Store>> =
+                            Arc::new(Mutex::new(new_set));
                         context
                             .DataBase
                             .store
-                            .insert(key.to_owned(), Some(Rc::downgrade(&shared_store)));
-                        context.TTLStore.store.insert(86400, shared_store);
+                            .insert(key.to_owned(), Some(Arc::downgrade(&shared_store)));
+                        context.TTLStore.store.insert(key.to_owned(), shared_store);
                         Ok(format!(":{}\r\n", added_count).into_bytes())
                     }
                 }
@@ -107,9 +107,9 @@ mod tests {
         let mut existing_set = SetStore::new();
         existing_set.add_member("existing1");
         existing_set.add_member("existing2");
-        let shared_store: Rc<RefCell<dyn Store>> = Rc::new(RefCell::new(existing_set));
-        ctx.DataBase.store.insert("myset".to_string(), Some(Rc::downgrade(&shared_store)));
-        ctx.TTLStore.store.insert(86400, shared_store);
+        let shared_store: Arc<Mutex<dyn Store>> = Arc::new(Mutex::new(existing_set));
+        ctx.DataBase.store.insert("myset".to_string(), Some(Arc::downgrade(&shared_store)));
+        ctx.TTLStore.store.insert("myset".to_string(), shared_store);
         
         let command = Command::SADD {
             key: "myset".to_string(),

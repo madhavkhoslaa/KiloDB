@@ -3,9 +3,9 @@ use crate::store::string_store::StringStore;
 use crate::store_containers::core_context::context;
 use crate::traits::command::commandExecutor;
 use crate::traits::Store::Store;
-use std::cell::RefCell;
+use std::sync::Mutex;
 use std::error::Error;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct decr;
 
@@ -17,7 +17,7 @@ impl commandExecutor for decr {
                     Some(Some(weak_ref)) => {
                         match weak_ref.upgrade() {
                             Some(store_ref) => {
-                                let mut store = store_ref.borrow_mut();
+                                let mut store = store_ref.lock().unwrap();
                                 if let Some(string_store) = (&mut *store as &mut dyn std::any::Any).downcast_mut::<StringStore>() {
                                     match string_store.get_value().parse::<i64>() {
                                         Ok(current_val) => {
@@ -33,26 +33,26 @@ impl commandExecutor for decr {
                             }
                             None => {
                                 // Key expired or deleted, treat as 0
-                                let shared_store: Rc<RefCell<dyn Store>> =
-                                    Rc::new(RefCell::new(StringStore::new("-1".to_string())));
+                                let shared_store: Arc<Mutex<dyn Store>> =
+                                    Arc::new(Mutex::new(StringStore::new("-1".to_string())));
                                 context
                                     .DataBase
                                     .store
-                                    .insert(key.to_owned(), Some(Rc::downgrade(&shared_store)));
-                                context.TTLStore.store.insert(86400, shared_store);
+                                    .insert(key.to_owned(), Some(Arc::downgrade(&shared_store)));
+                                context.TTLStore.store.insert(key.to_owned(), shared_store);
                                 Ok(b":-1\r\n".to_vec())
                             }
                         }
                     }
                     Some(None) | None => {
                         // Key doesn't exist, start with -1
-                        let shared_store: Rc<RefCell<dyn Store>> =
-                            Rc::new(RefCell::new(StringStore::new("-1".to_string())));
+                        let shared_store: Arc<Mutex<dyn Store>> =
+                            Arc::new(Mutex::new(StringStore::new("-1".to_string())));
                         context
                             .DataBase
                             .store
-                            .insert(key.to_owned(), Some(Rc::downgrade(&shared_store)));
-                        context.TTLStore.store.insert(86400, shared_store);
+                            .insert(key.to_owned(), Some(Arc::downgrade(&shared_store)));
+                        context.TTLStore.store.insert(key.to_owned(), shared_store);
                         Ok(b":-1\r\n".to_vec())
                     }
                 }
