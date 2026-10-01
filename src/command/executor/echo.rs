@@ -1,12 +1,13 @@
 use crate::command::command_enum::Command;
 use crate::store_containers::core_context::context;
-use crate::traits::command::commandExecutor;
 use std::error::Error;
 
 pub struct echo;
 
-impl commandExecutor for echo {
-    fn execute(commandObject: &Command, context: &mut context) -> Result<Vec<u8>, Box<dyn Error>> {
+// not commandExecutor, just &context - doesn't touch the store so it
+// can run under a read lock
+impl echo {
+    pub fn execute(commandObject: &Command, _context: &context) -> Result<Vec<u8>, Box<dyn Error>> {
         match commandObject {
             Command::ECHO { message } => {
                 // Return the message in RESP bulk string format

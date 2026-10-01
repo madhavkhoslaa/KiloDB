@@ -17,6 +17,7 @@
 
 ### 🚀 Performance Features
 - **Multithreaded** - one thread per connection, no more waiting behind other clients
+- **Read/write lock on the store** - concurrent reads don't block each other
 - **In-memory storage** with fast access patterns
 - **RESP protocol implementation** for Redis client compatibility
 - **Efficient data structures** optimized for Rust
@@ -42,6 +43,25 @@ fixed a bug where keys sharing a TTL could silently wipe each other out.
 change all 20 are served evenly, 165k ops/sec total (up from 77k ops/sec
 on just the one connection that got through). Full numbers in
 `bench/RESULTS.md`.
+
+### Mutex → RwLock on the shared store
+**Changing:** the store was behind a single `Mutex`, so every command -
+including `GET`, which never mutates anything - took an exclusive lock.
+Two connections both reading serialized behind each other exactly like
+there was only one connection. **To:** `RwLock`, with read-only commands
+(`GET`, `HGET`, `EXISTS`, `DBSIZE`, `PING`, `ECHO`) dispatched under a
+read guard and everything else under a write guard.
+
+**Performance gain:** concurrent `GET` on one hot key, no writes:
+
+| concurrency | Mutex | RwLock | delta |
+|---|---|---|---|
+| 1 | 119k ops/sec | 111k ops/sec | noise |
+| 50 | 167k ops/sec | 179k ops/sec | +7% |
+| 100 | 186k ops/sec | 216k ops/sec | +16% |
+
+Gap widens with concurrency, as expected for lock contention. Full
+numbers in `bench/RESULTS.md`.
 
 ## 🚀 Quick Start
 
